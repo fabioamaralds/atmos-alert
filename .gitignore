@@ -1,0 +1,18 @@
+# Ignorar o ambiente virtual
+atmos-alert-env/
+
+# Ignorar arquivos de banco de dados locais pesados, arquivo binario de cahe
+data/
+outputs/
+*.db
+
+# Ignorar credenciais e senhas
+.env
+
+# Ignorar arquivos de cache do Python (boa prática)
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Arquivo de anotações para criação de Readme
+anotacoes.txt
