@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 import zipfile
 import io
+import time
 
 print("🚀 Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
 
@@ -12,14 +13,35 @@ print("🚀 Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
 # Inicializando o Google Earth Engine
 ee.Initialize(project='atmosalert-497701')
 
-# Dicionário mestre com as cidades, estados e coordenadas (Lat, Lon)
+# Dicionário Mestre Nacional: Top 1 Município por Estado (Agosto/2023)
 cidades_alvo = {
+    'FEIJO': {'uf': 'AC', 'lat': -8.1642, 'lon': -70.3536},
+    'PENEDO': {'uf': 'AL', 'lat': -10.2905, 'lon': -36.5856},
+    'TARTARUGALZINHO': {'uf': 'AP', 'lat': 1.5074, 'lon': -50.9168},
+    'LABREA': {'uf': 'AM', 'lat': -7.2597, 'lon': -64.7975},
+    'COCOS': {'uf': 'BA', 'lat': -14.1806, 'lon': -44.5381},
+    'CAUCAIA': {'uf': 'CE', 'lat': -3.7328, 'lon': -38.6531},
+    'BRASILIA': {'uf': 'DF', 'lat': -15.7975, 'lon': -47.8919},
+    'SAO MATEUS': {'uf': 'ES', 'lat': -18.7161, 'lon': -39.8589},
+    'MIMOSO DE GOIAS': {'uf': 'GO', 'lat': -15.0567, 'lon': -48.1619},
+    'MIRADOR': {'uf': 'MA', 'lat': -6.3725, 'lon': -44.3631},
+    'COLNIZA': {'uf': 'MT', 'lat': -9.4122, 'lon': -59.3364},
+    'CORUMBA': {'uf': 'MS', 'lat': -19.0092, 'lon': -57.6533},
+    'FRANCISCO DUMONT': {'uf': 'MG', 'lat': -17.2997, 'lon': -43.8569},
+    'ALTAMIRA': {'uf': 'PA', 'lat': -3.2033, 'lon': -52.2064},
+    'CAJAZEIRAS': {'uf': 'PB', 'lat': -6.8894, 'lon': -38.5606},
+    'PRUDENTOPOLIS': {'uf': 'PR', 'lat': -25.2131, 'lon': -50.9778},
+    'BODOCO': {'uf': 'PE', 'lat': -7.7778, 'lon': -39.9389},
+    'URUCUI': {'uf': 'PI', 'lat': -7.2319, 'lon': -44.5561},
+    'CAMPOS DOS GOYTACAZES': {'uf': 'RJ', 'lat': -21.7539, 'lon': -41.3236},
+    'MOSSORO': {'uf': 'RN', 'lat': -5.1881, 'lon': -37.3442},
+    'SAO FRANCISCO DE PAULA': {'uf': 'RS', 'lat': -29.4447, 'lon': -50.5842},
     'PORTO VELHO': {'uf': 'RO', 'lat': -8.7611, 'lon': -63.9004},
-    'CUIABA': {'uf': 'MT', 'lat': -15.6014, 'lon': -56.0978},
-    'BARREIRAS': {'uf': 'BA', 'lat': -12.1527, 'lon': -44.9902},
-    'CAMPINAS': {'uf': 'SP', 'lat': -22.9099, 'lon': -47.0626},
-    'RIBEIRAO PRETO': {'uf': 'SP', 'lat': -21.1704, 'lon': -47.8103},
-    'LONDRINA': {'uf': 'PR', 'lat': -23.3102, 'lon': -51.1627}
+    'PACARAIMA': {'uf': 'RR', 'lat': 4.4756, 'lon': -61.1469},
+    'LAGES': {'uf': 'SC', 'lat': -27.8106, 'lon': -50.3261},
+    'SANTA ISABEL': {'uf': 'SP', 'lat': -23.3156, 'lon': -46.2214},
+    'TOBIAS BARRETO': {'uf': 'SE', 'lat': -11.1844, 'lon': -37.9969},
+    'LAGOA DA CONFUSAO': {'uf': 'TO', 'lat': -10.7936, 'lon': -49.6225}
 }
 
 # Período de Análise
@@ -58,7 +80,14 @@ for uf in ufs_unicas:
                         elif 'data_hora' in df_uf.columns:
                             df_uf.rename(columns={'data_hora': 'datahora'}, inplace=True)
                         
+                        # 1. Converte para maiúsculo
                         df_uf['municipio'] = df_uf['municipio'].str.upper()
+
+                        # 2. Remove todos os acentos, cedilhas e caracteres especiais
+                        df_uf['municipio'] = (df_uf['municipio']
+                                              .str.normalize('NFKD')
+                                              .str.encode('ascii', errors='ignore')
+                                              .str.decode('utf-8'))
                         
                         # 3. Extração da data
                         df_uf['Data'] = pd.to_datetime(df_uf['datahora']).dt.strftime('%Y-%m-%d')
@@ -91,6 +120,9 @@ for cidade, info in cidades_alvo.items():
         df_temp = df_temp.drop(columns=['Data_Bruta'])
         
         df_vento_final = pd.concat([df_vento_final, df_temp], ignore_index=True)
+        
+    # Pausa para não ser bloqueado:
+    time.sleep(2)
 
 # ==========================================
 # 3. INGESTÃO: COPERNICUS S-5P (Fumaça)
