@@ -1,5 +1,5 @@
 # Ignorar o ambiente virtual
-atmos-alert-env/
+atmos-alert-venv/
 
 # Ignorar arquivos de banco de dados locais pesados, arquivo binario de cahe
 data/
