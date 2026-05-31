@@ -14,6 +14,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Arquivos de anotações na criaçao
+# Arquivos de anotações na criação
 anotacoes.txt
 tabela-de-focos.xlsx
