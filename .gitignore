@@ -14,5 +14,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Arquivo de anotações para criação de Readme
+# Arquivos de anotações na criaçao
 anotacoes.txt
+tabela-de-focos.xlsx

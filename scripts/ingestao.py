@@ -7,9 +7,7 @@ import time
 
 print("🚀 Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
 
-# ==========================================
-# 0. CONFIGURAÇÕES E AUTENTICAÇÃO
-# ==========================================
+# CONFIGURAÇÕES E AUTENTICAÇÃO
 # Inicializando o Google Earth Engine
 ee.Initialize(project='atmosalert-497701')
 
@@ -54,9 +52,7 @@ df_queimadas_final = pd.DataFrame()
 df_vento_final = pd.DataFrame()
 df_fumaca_final = pd.DataFrame()
 
-# ==========================================
-# 1. INGESTÃO: INPE (Focos de Calor)
-# ==========================================
+# INGESTÃO: INPE (Focos de Calor)
 print("\n🔥 [1/3] Extraindo Focos de Calor (INPE)...")
 ufs_unicas = set([info['uf'] for info in cidades_alvo.values()])
 
@@ -100,9 +96,7 @@ for uf in ufs_unicas:
 cidades_nomes = list(cidades_alvo.keys())
 df_queimadas_final = df_queimadas_final[df_queimadas_final['municipio'].isin(cidades_nomes)]
 
-# ==========================================
-# 2. INGESTÃO: NASA POWER (Ventos)
-# ==========================================
+# INGESTÃO: NASA POWER (Ventos)
 print("\n💨 [2/3] Extraindo Velocidade e Direção do Vento (NASA)...")
 for cidade, info in cidades_alvo.items():
     url_nasa = f"https://power.larc.nasa.gov/api/temporal/daily/point?parameters=WS50M,WD50M&community=RE&longitude={info['lon']}&latitude={info['lat']}&start={nasa_inicio}&end={nasa_fim}&format=JSON"
@@ -124,9 +118,7 @@ for cidade, info in cidades_alvo.items():
     # Pausa para não ser bloqueado:
     time.sleep(2)
 
-# ==========================================
-# 3. INGESTÃO: COPERNICUS S-5P (Fumaça)
-# ==========================================
+# INGESTÃO: COPERNICUS S-5P (Fumaça)
 print("\n🌫️ [3/3] Extraindo Índice de Aerossóis (Google Earth Engine)...")
 s5p_colecao = (ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI')
                .filterDate(ee_inicio, ee_fim)
@@ -150,13 +142,11 @@ for cidade, info in cidades_alvo.items():
     
     df_fumaca_final = pd.concat([df_fumaca_final, df_temp], ignore_index=True)
 
-# ==========================================
-# 4. SALVANDO OS DADOS BRUTOS (RAW)
-# ==========================================
+# SALVANDO OS DADOS BRUTOS (RAW)
 print("\n💾 Salvando arquivos CSV na pasta 'data/raw/'...")
 # *Nota: Garanta que a pasta '../data/raw/' existe no seu Ubuntu
 df_queimadas_final.to_csv('../data/raw/bdqueimadas_agosto_2023.csv', index=False)
 df_vento_final.to_csv('../data/raw/vento_nasa_agosto_2023.csv', index=False)
 df_fumaca_final.to_csv('../data/raw/fumaca_copernicus_agosto_2023.csv', index=False)
 
-print("✅ Pipeline de Ingestão Finalizado com Sucesso! Bases reais prontas para limpeza e merge.")
+print("Pipeline de Ingestão Finalizado com Sucesso! Bases reais prontas para limpeza e merge.")
