@@ -38,9 +38,8 @@ Contém os arquivos de exploração e prototipagem:
 ### Docs
 Documentação técnica do projeto e entrega:
 
-- Regras matemáticas para disparo dos alertas
+- Premissas adotadas no projeto
 - Dicionário de dados
-- Decisões arquiteturais do pipeline
 - Apresentação final para entrega
 
 ---
@@ -89,6 +88,7 @@ Esses arquivos são mantidos em pasta compartilhada do grupo ou gerenciados via 
 - PostgreSQL (Banco de Dados Online via Supabase)
 - GitHub Actions (Orquestração e automação)
 - Git e GitHub (Versionamento)
+- Frontend (netlify)
 
 ---
 
@@ -112,7 +112,8 @@ A validação do sistema não utiliza regras ou limiares arbitrários. Toda a l�
 
 ## 🔜 Próximos Passos
 
-* Realizar mais análises a fim de melhorar o entendimento preditivo da dispersão das fumaças.
+* Realizar mais análises a fim de melhorar o entendimento preditivo da dispersão das fumaças;
+* Avaliar a utilização de Big Data para analise de todos os municípios do Brasil;
 * Utilizar algoritmos de Machine Learning para análise preditiva com previsão da qualidade do ar.
 
 ---
