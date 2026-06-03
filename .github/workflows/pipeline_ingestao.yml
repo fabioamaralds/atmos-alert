@@ -30,4 +30,5 @@ jobs:
     - name: Extrair e Dados do INPE e satélites
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        EE_CREDENTIALS: ${{ secrets.EE_CREDENTIALS }}
       run: python scripts/ingestao.py

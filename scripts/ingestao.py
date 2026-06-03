@@ -1,5 +1,6 @@
 import os
 import ee
+from google.oauth2 import service_account
 import pandas as pd
 import requests
 import zipfile
@@ -14,9 +15,23 @@ load_dotenv()
 
 print(" Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
 
-# CONFIGURAÇÕES E AUTENTICAÇÃO
-# Inicializando o Google Earth Engine
-ee.Initialize(project='atmosalert-497701')
+# AUTENTICAÇÃO DO EARTH ENGINE (Para rodar no GitHub e Local)
+ee_credentials_json = os.getenv("EE_CREDENTIALS")
+
+if ee_credentials_json:
+    print("Lendo credenciais do GitHub Secrets...")
+    # Transforma o texto do JSON em um dicionário Python
+    cred_dict = json.loads(ee_credentials_json)
+    # Cria o "crachá" do Google
+    credentials = service_account.Credentials.from_service_account_info(cred_dict)
+    # Pede permissão específica para o Earth Engine
+    scoped_credentials = credentials.with_scopes(['https://www.googleapis.com/auth/earthengine'])
+    
+    # Inicializa usando o crachá
+    ee.Initialize(scoped_credentials, project='atmosalert-497701')
+else:
+    print(" 💻 Rodando localmente (usando credenciais salvas na máquina)...")
+    ee.Initialize(project='atmosalert-497701')
 
 # Dicionário Mestre Nacional: Top 1 Município por Estado (Agosto/2023)
 cidades_alvo = {
