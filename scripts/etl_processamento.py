@@ -4,22 +4,27 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 from dotenv import load_dotenv
 
-# Carrega as variáveis de ambiente (onde está a sua DATABASE_URL)
+# Carrega as variáveis de ambiente
 load_dotenv()
 
-print("⚙️ Iniciando Pipeline de Processamento e Transformação - AtmosAlert...")
+print("Iniciando Pipeline de Processamento e Transformação - AtmosAlert...")
 
-# CARREGAMENTO DOS DADOS BRUTOS
-print(" -> Lendo arquivos brutos (RAW)...")
-caminho_queimadas = '../data/raw/bdqueimadas_agosto_2023.csv'
-caminho_fumaca = '../data/raw/fumaca_copernicus_agosto_2023.csv'
-caminho_vento = '../data/raw/vento_nasa_agosto_2023.csv'
+# Estabelece a conexão com o Supabase logo no início
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-df_queimadas = pd.read_csv(caminho_queimadas)
-df_fumaca = pd.read_csv(caminho_fumaca)
-df_vento = pd.read_csv(caminho_vento)
+if not DATABASE_URL:
+    raise ValueError("ERRO: Variável 'DATABASE_URL' não encontrada. Verifique os Secrets do GitHub ou o seu .env local!")
 
-# Garantindo que as datas estejam no formato correto
+engine = create_engine(DATABASE_URL, poolclass=NullPool)
+
+# CARREGAMENTO DOS DADOS BRUTOS (DIRETO DO SUPABASE)
+print(" -> Lendo tabelas brutas (RAW) do Supabase...")
+with engine.begin() as conn:
+    df_queimadas = pd.read_sql_table('raw_bdqueimadas', conn)
+    df_fumaca = pd.read_sql_table('raw_fumaca_copernicus', conn)
+    df_vento = pd.read_sql_table('raw_vento_nasa', conn)
+
+# Garantindo que as datas estejam no formato correto após virem do banco
 df_queimadas['Data'] = pd.to_datetime(df_queimadas['Data'])
 df_fumaca['Data'] = pd.to_datetime(df_fumaca['Data'])
 df_vento['Data'] = pd.to_datetime(df_vento['Data'])
@@ -69,24 +74,10 @@ limite_z = 3.0
 df_atmosalert['Alerta_Z'] = df_atmosalert['Score_Z_Fumaca'] > limite_z
 
 # CARGA NO BANCO DE DADOS (SUPABASE)
-print("\n ☁️ Iniciando conexão com o banco de dados Supabase...")
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    print("ERRO: Variável 'DATABASE_URL' não encontrada. Verifique o arquivo .env!")
-else:
-    try:
-        # Cria a conexão com o banco usando NullPool (melhor para scripts curtos/serverless)
-        engine = create_engine(DATABASE_URL, poolclass=NullPool)
-        
-        with engine.begin() as conn:
-            print("  -> Inserindo Tabela Analítica Consolidada (tb_atmosalert_analitico)...")
-            # Salva no banco. O if_exists='replace' recria a tabela para testes.
-            df_atmosalert.to_sql('tb_atmosalert_analitico', conn, if_exists='replace', index=False)
-            
-        print("Sucesso! A tabela unificada foi carregada no Supabase e está pronta para o Dashboard.")
-        
-    except Exception as e:
-        print(f"Erro ao enviar para o banco de dados: {e}")
-
+print(" -> Inserindo Tabela Analítica Consolidada (tb_atmosalert_analitico) no Supabase...")
+with engine.begin() as conn:
+    # Salva no banco a tabela mastigada final
+    df_atmosalert.to_sql('tb_atmosalert_analitico', conn, if_exists='replace', index=False)
+    
+print("Sucesso! A tabela unificada foi carregada no Supabase e está pronta para o Dashboard.")
 print("\n Pipeline de Processamento Finalizado!")
