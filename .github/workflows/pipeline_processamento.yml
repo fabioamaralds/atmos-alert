@@ -27,7 +27,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Extrair e Dados do INPE e satélites
+    - name: Limpeza e Processamento dos dados
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: python scripts/etl_processamento.py
