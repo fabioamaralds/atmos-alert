@@ -1,11 +1,18 @@
+import os
 import ee
 import pandas as pd
 import requests
 import zipfile
 import io
 import time
+from sqlalchemy import create_engine
+from sqlalchemy.pool import NullPool
+from dotenv import load_dotenv
 
-print("🚀 Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
+# Carrega as variáveis do arquivo .env (como a DATABASE_URL)
+load_dotenv()
+
+print(" Iniciando Pipeline de Ingestão de Dados - AtmosAlert...")
 
 # CONFIGURAÇÕES E AUTENTICAÇÃO
 # Inicializando o Google Earth Engine
@@ -53,7 +60,7 @@ df_vento_final = pd.DataFrame()
 df_fumaca_final = pd.DataFrame()
 
 # INGESTÃO: INPE (Focos de Calor)
-print("\n🔥 [1/3] Extraindo Focos de Calor (INPE)...")
+print("\n [1/3] Extraindo Focos de Calor (INPE)...")
 ufs_unicas = set([info['uf'] for info in cidades_alvo.values()])
 
 for uf in ufs_unicas:
@@ -97,7 +104,7 @@ cidades_nomes = list(cidades_alvo.keys())
 df_queimadas_final = df_queimadas_final[df_queimadas_final['municipio'].isin(cidades_nomes)]
 
 # INGESTÃO: NASA POWER (Ventos)
-print("\n💨 [2/3] Extraindo Velocidade e Direção do Vento (NASA)...")
+print("\n [2/3] Extraindo Velocidade e Direção do Vento (NASA)...")
 for cidade, info in cidades_alvo.items():
     url_nasa = f"https://power.larc.nasa.gov/api/temporal/daily/point?parameters=WS50M,WD50M&community=RE&longitude={info['lon']}&latitude={info['lat']}&start={nasa_inicio}&end={nasa_fim}&format=JSON"
     res = requests.get(url_nasa)
@@ -119,7 +126,7 @@ for cidade, info in cidades_alvo.items():
     time.sleep(2)
 
 # INGESTÃO: COPERNICUS S-5P (Fumaça)
-print("\n🌫️ [3/3] Extraindo Índice de Aerossóis (Google Earth Engine)...")
+print("\n [3/3] Extraindo Índice de Aerossóis (Google Earth Engine)...")
 s5p_colecao = (ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_AER_AI')
                .filterDate(ee_inicio, ee_fim)
                .select('absorbing_aerosol_index'))
@@ -142,11 +149,41 @@ for cidade, info in cidades_alvo.items():
     
     df_fumaca_final = pd.concat([df_fumaca_final, df_temp], ignore_index=True)
 
-# SALVANDO OS DADOS BRUTOS (RAW)
-print("\n💾 Salvando arquivos CSV na pasta 'data/raw/'...")
-# *Nota: Garanta que a pasta '../data/raw/' existe no seu Ubuntu
+# SALVANDO OS DADOS BRUTOS (RAW) - LOCALMENTE
+print("\n Salvando arquivos CSV localmente...")
+# Verificando se o diretório existe para não dar erro
+os.makedirs('../data/raw/', exist_ok=True)
+
 df_queimadas_final.to_csv('../data/raw/bdqueimadas_agosto_2023.csv', index=False)
 df_vento_final.to_csv('../data/raw/vento_nasa_agosto_2023.csv', index=False)
 df_fumaca_final.to_csv('../data/raw/fumaca_copernicus_agosto_2023.csv', index=False)
 
-print("Pipeline de Ingestão Finalizado com Sucesso! Bases reais prontas para limpeza e merge.")
+
+# NOVO BLOCO: ENVIO PARA O BANCO DE DADOS (SUPABASE)
+print("\n Iniciando conexão com o banco de dados Supabase...")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    print(" ERRO: Variável 'DATABASE_URL' não encontrada. Verifique o arquivo .env!")
+else:
+    try:
+        # Cria a conexão com o banco (usando NullPool conforme seu script de referência)
+        engine = create_engine(DATABASE_URL, poolclass=NullPool)
+        
+        with engine.begin() as conn:
+            print("  -> Inserindo dados Brutos de Queimadas (INPE)...")
+            # if_exists='replace' recria a tabela caso ela já exista (ideal para dados estáticos de agosto)
+            df_queimadas_final.to_sql('raw_bdqueimadas', conn, if_exists='replace', index=False)
+            
+            print("  -> Inserindo dados Brutos de Ventos (NASA)...")
+            df_vento_final.to_sql('raw_vento_nasa', conn, if_exists='replace', index=False)
+            
+            print("  -> Inserindo dados Brutos de Fumaça (Copernicus)...")
+            df_fumaca_final.to_sql('raw_fumaca_copernicus', conn, if_exists='replace', index=False)
+            
+        print(" Sucesso! Todas as tabelas foram carregadas no Supabase.")
+        
+    except Exception as e:
+        print(f" Erro ao enviar para o banco de dados: {e}")
+
+print("\n Pipeline de Ingestão Finalizado!")
