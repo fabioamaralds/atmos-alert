@@ -1,0 +1,33 @@
+name: Pipeline Processamento
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  schedule:
+    # Roda automaticamente todo dia 10 do mês à 1h15 da manhã (UTC)
+    - cron: '15 1 10 * *'
+  workflow_dispatch: # Permite rodar manualmente
+
+jobs:
+  executar-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Instalar Dependências (requirements.txt)
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Extrair e Dados do INPE e satélites
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: python scripts/etl_processamento.py
