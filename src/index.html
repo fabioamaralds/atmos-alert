@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AtmosAlert | Monitoramento</title>
+    <!-- Importando a biblioteca oficial do Supabase via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; }
+        .alerta-vermelho { background-color: #ffe6e6; color: #cc0000; font-weight: bold; }
+        .alerta-laranja { background-color: #fff3cd; color: #856404; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>AtmosAlert 🌍</h1>
+        <p>Monitoramento de Anomalias de Fumaça e Focos de Calor</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Município</th>
+                    <th>Focos de Calor</th>
+                    <th>Índice Fumaça (Z-Score)</th>
+                    <th>Status do Alerta</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo">
+                <tr><td colspan="5">Conectando ao banco de dados...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 1. INSIRA SUAS CHAVES AQUI (Pegue no painel do Supabase)
+        const SUPABASE_URL = 'https://mbzkvvwjkhknqykguqgt.supabase.co/rest/v1/';
+        const SUPABASE_ANON_KEY = 'sb_publishable_gF10Y4ao0EakkPoukA__2Q_F4k7alwl';
+
+        // Inicializa a conexão
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 2. BUSCA OS DADOS NA TABELA
+        async function carregarDados() {
+            try {
+                const { data, error } = await supabase
+                    .from('tb_atmosalert_analitico')
+                    .select('*')
+                    .order('Data', { ascending: false }) // Traz os mais recentes primeiro
+                    .limit(50); // Limite de linhas para não travar o navegador
+
+                if (error) throw error;
+
+                renderizarTabela(data);
+            } catch (error) {
+                console.error("Erro do Supabase:", error);
+                document.getElementById('tabela-corpo').innerHTML = `<tr><td colspan="5" style="color:red;">Erro ao buscar dados: ${error.message}</td></tr>`;
+            }
+        }
+
+        // 3. INJETA OS DADOS NO HTML
+        function renderizarTabela(dados) {
+            const tbody = document.getElementById('tabela-corpo');
+            tbody.innerHTML = ''; 
+
+            dados.forEach(linha => {
+                let status = "✅ Normal";
+                let classeCss = "";
+
+                // Aplica as regras visuais baseadas nos cálculos do Python
+                if (linha.Alerta_Z === true) {
+                    status = "🔴 ALERTA VERMELHO (Extremo)";
+                    classeCss = "alerta-vermelho";
+                } else if (linha.Alerta_IQR === true) {
+                    status = "🟠 ALERTA LARANJA (Atenção)";
+                    classeCss = "alerta-laranja";
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = classeCss;
+                tr.innerHTML = `
+                    <td>${linha.Data}</td>
+                    <td>${linha.Municipio}</td>
+                    <td>${linha.Focos_Calor}</td>
+                    <td>${parseFloat(linha.Score_Z_Fumaca).toFixed(2)}</td>
+                    <td>${status}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Executa a função ao carregar a página
+        carregarDados();
+    </script>
+</body>
+</html>
