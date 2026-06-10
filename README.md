@@ -118,8 +118,6 @@ A validação do sistema não utiliza regras ou limiares arbitrários. Toda a l�
 
 ---
 
-Link para acesso à aplicação: <a href="#" target="_blank" rel="noopener noreferrer">Lorem Ipsum</a>
-
 ## 👥 Equipe
 
 Projeto desenvolvido pela equipe Data Insight.
